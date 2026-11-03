@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { scoreColor } from './color'
+import { scoreColor } from '../core/format.js'
+import { fill, LABELS_ID } from '../core/labels.js'
 
 function useWidth(fallback = 720) {
   const ref = useRef(null)
@@ -17,10 +18,23 @@ function useWidth(fallback = 720) {
 const PAD = { l: 44, r: 16, t: 34, b: 50 }
 
 /**
- * Grafik SVG mesin waktu. Sumbu x & y tetap untuk seluruh rentang waktu, jadi saat
+ * Grafik SVG mesin waktu — PRESENTASIONAL (hanya props, tanpa context), jadi bisa
+ * dipakai terpisah dengan data dari mana saja. Sumbu x & y tetap untuk seluruh rentang waktu, jadi saat
  * slider digeser ke belakang garis "terpotong" dan masa depan tampak kosong.
  */
-export function ReplayChart({ series, analysis, index, forecast, events, height, unit, formatTime, formatDuration, onSeek }) {
+export function ReplayChart({
+  series,
+  analysis,
+  index,
+  forecast = null,
+  events = [],
+  height = 340,
+  unit = '',
+  labels = LABELS_ID,
+  formatTime = (t) => String(Math.floor(t)),
+  formatDuration = (d) => String(Math.round(d)),
+  onSeek,
+}) {
   const [wrapRef, width] = useWidth()
   const uid = useId().replace(/:/g, '')
   const { threshold, mean, smooth, score, detectIndex, crossIndex } = analysis
@@ -71,7 +85,7 @@ export function ReplayChart({ series, analysis, index, forecast, events, height,
   }
 
   return (
-    <div ref={wrapRef} className="tm-chart">
+    <div ref={wrapRef} className="tm-part tm-chart">
       <svg
         width={width}
         height={H}
@@ -113,7 +127,7 @@ export function ReplayChart({ series, analysis, index, forecast, events, height,
             <rect x={cx} y={PAD.t} width={width - PAD.r - cx} height={plotB - PAD.t} fill={`url(#h${uid})`} />
             {width - PAD.r - cx > 90 && (
               <text className="tm-future" x={(cx + width - PAD.r) / 2} y={PAD.t + 16} textAnchor="middle">
-                belum terjadi
+                {labels.future}
               </text>
             )}
           </g>
@@ -122,7 +136,7 @@ export function ReplayChart({ series, analysis, index, forecast, events, height,
         {/* batas alarm */}
         <line className="tm-threshold" x1={PAD.l} x2={width - PAD.r} y1={y(threshold)} y2={y(threshold)} />
         <text className="tm-threshold-label" x={PAD.l + 6} y={y(threshold) - 6}>
-          Batas alarm {threshold} {unit}
+          {fill(labels.threshold, { value: `${threshold} ${unit}`.trim() })}
         </text>
 
         {/* data: mentah (tipis) + pandangan AI (tebal, berwarna sesuai keparahan) */}
@@ -144,7 +158,7 @@ export function ReplayChart({ series, analysis, index, forecast, events, height,
                   y={-10}
                   textAnchor={width - PAD.r - x(forecast.t) < 60 ? 'end' : 'middle'}
                 >
-                  Prediksi: {formatTime(forecast.t)}
+                  {fill(labels.forecast, { time: formatTime(forecast.t) })}
                 </text>
               </g>
             )}
@@ -153,17 +167,17 @@ export function ReplayChart({ series, analysis, index, forecast, events, height,
 
         {/* momen penting (muncul hanya setelah "terjadi") */}
         {reached(detectIndex) && (
-          <Marker x={x(series[detectIndex].t)} top={PAD.t} bottom={plotB} right={width - PAD.r} className="is-ai" label="AI mendeteksi" />
+          <Marker x={x(series[detectIndex].t)} top={PAD.t} bottom={plotB} right={width - PAD.r} className="is-ai" label={labels.aiDetected} />
         )}
         {reached(crossIndex) && (
-          <Marker x={x(series[crossIndex].t)} top={PAD.t} bottom={plotB} right={width - PAD.r} className="is-alarm" label="Alarm konvensional" />
+          <Marker x={x(series[crossIndex].t)} top={PAD.t} bottom={plotB} right={width - PAD.r} className="is-alarm" label={labels.alarm} />
         )}
-        {reached(crossIndex) && detectIndex >= 0 && (
+        {reached(crossIndex) && detectIndex >= 0 && detectIndex < crossIndex && (
           <LeadBracket
             x1={x(series[detectIndex].t)}
             x2={x(series[crossIndex].t)}
             y={PAD.t - 18}
-            text={`AI ${formatDuration(series[crossIndex].t - series[detectIndex].t)} lebih awal`}
+            text={fill(labels.leadTime, { lead: formatDuration(series[crossIndex].t - series[detectIndex].t) })}
           />
         )}
         {events
@@ -180,7 +194,7 @@ export function ReplayChart({ series, analysis, index, forecast, events, height,
           <rect key={i} x={x(series[i].t)} y={stripY} width={stripW} height={10} fill={scoreColor(s)} opacity={0.35 + 0.65 * s} />
         ))}
         <text className="tm-axis" x={PAD.l - 6} y={stripY + 9} textAnchor="end">
-          AI
+          {labels.scoreStrip}
         </text>
 
         {/* kursor waktu */}

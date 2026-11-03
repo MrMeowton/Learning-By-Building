@@ -6,5 +6,5 @@ Repository untuk project-project dalam mempelajari software development. Reposit
 2. Asset 3D View — `react-three-fiber` + `drei` (`02-3d-asset-viewer`)
 3. Root Cause Graph — `@xyflow/react` (React Flow) (`03-root-cause-graph`)
 4. X-Ray Asset View — klik kompresor, casing transparan, bearing rusak berdenyut merah (`04-xray-asset-view`)
-5. Time-Machine Replay — geser waktu ke belakang, anomali tumbuh pelan-pelan, AI terbukti memprediksi lebih awal (`05-time-machine-replay`)
+5. Time-Machine Replay — geser waktu ke belakang, anomali tumbuh pelan-pelan, AI terbukti memprediksi lebih awal; modul berlapis (preset · komposabel · headless · core) + adapter API (`05-time-machine-replay`)
 6. Energy Sankey — aliran fuel gas, steam, listrik → unit → produk & kerugian beranimasi, lebar aliran = GJ (`06-energy-sankey`)

@@ -1,6 +1,11 @@
-/* Gaya modul timemachine — semua class ber-prefix tm- (tanpa reset global) */
+/* Gaya modul timemachine — semua class ber-prefix tm- (tanpa reset global).
+ * TEMA: timpa variabel di bawah dari CSS milik sendiri (selector apa pun menang,
+ * karena default dibungkus :where = specificity 0), mis.
+ *   .dashboard .tm-part { --tm-bg: #fff; --tm-text: #0f172a; --tm-accent: #7c3aed; }
+ * Default hanya dipasang di komponen tm- terluar; yang bersarang mewarisinya.
+ */
 
-.tm-root {
+:where(.tm-part:not(.tm-part *)) {
   --tm-bg: #0b1120;
   --tm-panel: #111a2e;
   --tm-line: #1e293b;
@@ -10,15 +15,20 @@
   --tm-ai: #f59e0b;
   --tm-alarm: #ef4444;
   --tm-accent: #38bdf8;
+}
 
+.tm-part {
+  color: var(--tm-text);
+  font-family: inherit;
+}
+
+.tm-root {
   display: flex;
   flex-direction: column;
   gap: 14px;
   padding: 18px;
   border-radius: 14px;
   background: var(--tm-bg);
-  color: var(--tm-text);
-  font-family: inherit;
   outline: none;
   border: 1px solid var(--tm-line);
   transition: box-shadow 0.4s;
@@ -260,9 +270,14 @@
 }
 
 /* panel cerita */
-.tm-story {
+.tm-footer {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 170px)) 1fr;
+  grid-template-columns: minmax(0, 350px) 1fr;
+  gap: 10px;
+}
+.tm-statuses {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 .tm-status {
@@ -317,10 +332,7 @@
 }
 
 @media (max-width: 640px) {
-  .tm-story {
-    grid-template-columns: 1fr 1fr;
-  }
-  .tm-narrative {
-    grid-column: 1 / -1;
+  .tm-footer {
+    grid-template-columns: 1fr;
   }
 }

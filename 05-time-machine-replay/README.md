@@ -5,15 +5,14 @@ Geser slider **ke belakang** → masa depan menjadi kosong ("belum terjadi") dan
 mengecil. Tekan **▶** → anomali **tumbuh pelan-pelan**, dan penonton melihat sendiri:
 
 1. **AI mendeteksi** tren naik saat dashboard konvensional masih `NORMAL`,
-2. garis putus-putus **prediksi AI** menunjuk tanggal kapan batas akan dilewati (dan
-   makin tepat seiring waktu),
-3. **alarm konvensional** baru berbunyi belakangan → muncul braket _"AI 14 hari lebih awal"_.
+2. garis putus-putus **prediksi AI** menunjuk kapan batas akan dilewati (makin tepat seiring waktu),
+3. **alarm konvensional** baru berbunyi belakangan → braket _"AI 14 hari lebih awal"_.
 
-Jadi nilai AI dibuktikan **dengan cerita**, bukan klaim. Cocok untuk demo Reliability
-(getaran bearing) maupun Energy (suhu trafo) — demo menyertakan keduanya.
+Nilai AI dibuktikan **dengan cerita**, bukan klaim. Cocok untuk Reliability & Energy.
 
-Hanya `react` — grafiknya SVG murni, tanpa library chart. Dikemas sebagai **modul
-mandiri** (`src/features/timemachine`) yang tinggal disalin ke project hackathon.
+Modulnya **berlapis** supaya mudah ditempel ke sistem hackathon apa pun: pakai preset
+satu baris, susun komponennya di layout dashboard sendiri, atau ambil otaknya saja
+(hook headless / logika murni). Hanya butuh `react` — grafik SVG murni.
 
 ## Menjalankan demo
 
@@ -21,97 +20,182 @@ mandiri** (`src/features/timemachine`) yang tinggal disalin ke project hackathon
 cd 05-time-machine-replay
 npm install
 npm run dev      # buka http://localhost:5173
+npm test         # 7 test untuk lapisan core (node:test, tanpa dependensi)
 ```
 
-| Interaksi | Hasil |
+Demo berisi **3 contoh integrasi** (`src/demo/`):
+
+| Tab | Menunjukkan |
 | --- | --- |
-| Geser slider / klik-drag grafik | Lompat ke titik waktu tersebut |
-| **▶ / ❚❚** atau `Spasi` | Putar maju / jeda (di ujung → mulai dari awal) |
-| `1× 2× 4×` | Kecepatan putar |
-| `←` `→` (`Shift` = lompat jauh), `Home` / `End` | Navigasi keyboard (fokuskan panel dulu) |
-| **Sekarang ⏭** | Kembali ke titik terakhir |
+| 1 · Siap pakai | `<TimeMachineReplay/>` satu komponen |
+| 2 · Dashboard komposisi | hook di induk, `TM*` disusun bebas, komponen sendiri via context, callback `onDetect/onAlarm`, kendali waktu dari luar, ganti bahasa ID ⇄ EN |
+| 3 · Data & model dari API | JSON backend (tanggal ISO, skor & prediksi model ML) → `toSeries` + `fromPrecomputed`, sumbu waktu jadi tanggal |
 
-## Struktur
+Interaksi: geser slider / klik-drag grafik, **▶** atau `Spasi`, `1× 2× 4×`, `←` `→`
+(`Shift` = jauh), `Home` / `End`, **Sekarang ⏭**.
+
+## Arsitektur
 
 ```
-src/
-├── App.jsx                     DEMO: 2 aset (Reliability & Energy)
-└── features/timemachine/       ← MODUL MANDIRI — salin folder ini
-    ├── index.js                pintu masuk (impor HANYA dari sini)
-    ├── TimeMachineReplay.jsx   siap pakai: header + grafik + kontrol + panel cerita
-    ├── ReplayChart.jsx         grafik SVG (batas, garis AI, proyeksi, penanda, jalur skor)
-    ├── useReplay.js            hook state waktu + pemutar (requestAnimationFrame)
-    ├── analysis.js             logika murni: baseline, skor, deteksi, prediksi, data demo
-    ├── color.js                warna skor hijau → merah
-    └── timemachine.css         gaya ber-prefix tm-
+src/features/timemachine/          ← MODUL MANDIRI — salin folder ini
+├── index.js                       pintu masuk (impor HANYA dari sini)
+├── core/        LAPISAN 4 · logika murni, tanpa React (jalan juga di Node/backend)
+│   ├── analyze.js        analyzer bawaan: baseline, EWMA, skor, deteksi, alarm
+│   ├── forecast.js       forecaster bawaan: proyeksi eksponensial tanpa mengintip masa depan
+│   ├── precomputed.js    fromPrecomputed() — pakai skor & prediksi dari model backend
+│   ├── stage.js          stageAt() normal/warning/alarm, summarize() angka pembuktian
+│   ├── series.js         toSeries() adapter data API/CSV, makeDegradationSeries() data demo
+│   ├── format.js         createTimeFormat() (Hari 12 / 8 Okt), formatValue, scoreColor
+│   ├── labels.js         LABELS_ID, LABELS_EN, mergeLabels, fill
+│   └── types.js          typedef JSDoc (autocomplete VS Code)
+├── react/       LAPISAN 3 · hook headless
+│   ├── useTimeMachine.js     seluruh otak: data + tahap + prediksi + pemutar + callback
+│   ├── useReplay.js          pemutar waktu (controlled / uncontrolled)
+│   ├── useReplayKeyboard.js  pintasan keyboard
+│   └── context.js            useTimeMachineContext()
+├── components/  LAPISAN 2 & 1 · UI
+│   ├── TimeMachineProvider.jsx
+│   ├── parts.jsx             TMRoot, TMHeader, TMChart, TMControls, TMStatus, TMStory
+│   ├── ReplayChart.jsx       grafik presentasional (hanya props)
+│   └── TimeMachineReplay.jsx PRESET = Provider + semua parts
+└── styles/timemachine.css     class ber-prefix tm-, tema lewat CSS variable
 ```
 
-## Integrasi ke project utama
+Aturan ketergantungan satu arah: `components → react → core`. Core tidak tahu React,
+hook tidak tahu tampilan → setiap lapisan bisa diganti tanpa menyentuh yang lain.
+
+## Integrasi ke project hackathon
 
 ```bash
 cp -r 05-time-machine-replay/src/features/timemachine  <project-utama>/src/features/
-# tidak ada dependensi tambahan selain react
+# tidak ada dependensi tambahan selain react (18/19)
 ```
 
-### Cara 1 — pakai komponen jadi
+Pilih lapisan sesuai kebutuhan:
+
+### 1 · Preset — tempel & jalan
 
 ```jsx
 import { TimeMachineReplay } from './features/timemachine'
 
-<TimeMachineReplay
-  title="Bearing pompa P-101"
-  series={history}            // [{ t: hari, v: nilai }] — dari API / sensor
-  threshold={7.1}
-  unit="mm/s"
-  events={[{ t: 20, title: 'Inspeksi rutin', text: 'tidak ada temuan' }]}
-/>
+<TimeMachineReplay title="Bearing P-101" series={history} threshold={7.1} unit="mm/s" />
 ```
 
-| Prop | Keterangan |
-| --- | --- |
-| `series` | `[{ t, v }]` urut waktu. `t` bebas satuannya (hari, jam, …) |
-| `threshold`, `unit` | batas alarm konvensional & satuannya |
-| `events` | `[{ t, title, text? }]` penanda (◆) yang muncul setelah "terjadi" |
-| `start` | `'end'` (default), `'start'`, atau index awal |
-| `formatTime(t)`, `formatDuration(d)` | default `Hari 12` / `5 hari` — ganti bila `t` dalam jam, dll. |
-| `pointsPerSecond` | kecepatan putar 1× (default 24 titik/detik) |
-| `height` | tinggi grafik (px) |
-| `analysisOptions` | `{ warmup, alpha, detectZ, hold }` — kepekaan deteksi |
-| `forecastOptions` | `{ window, steps, maxAhead }` — jendela regresi proyeksi |
-| `onIndexChange(i, point)` | sinkronkan dengan komponen lain (mis. digital twin 3D) |
-
-Tip: gabungkan dengan project 04 — panggil `onIndexChange` lalu nyalakan `FaultPulse`
-saat skor anomali di titik itu melewati ambang tertentu, jadi bearing 3D ikut "memanas"
-saat slider diputar.
-
-### Cara 2 — rakit sendiri
+### 2 · Komposabel — susun di layout dashboard sendiri
 
 ```jsx
-import { analyzeSeries, forecastAt, useReplay, ReplayChart } from './features/timemachine'
+import { TimeMachineProvider, TMRoot, TMHeader, TMChart, TMControls, TMStatus, TMStory,
+         useTimeMachineContext } from './features/timemachine'
 
-const analysis = analyzeSeries(series, { threshold: 7.1 })
-const { index, setIndex, toggle } = useReplay(series.length)
-const forecast = forecastAt(series, analysis, index)
+<TimeMachineProvider series={history} threshold={95} unit="°C">
+  <div className="grid">
+    <TMRoot><TMHeader /><TMChart height={300} /><TMControls speeds={[1, 4]} /></TMRoot>
+    <aside><TMStatus /><MyWorkOrder /><TMStory /></aside>
+  </div>
+</TimeMachineProvider>
+
+// Komponen milikmu sendiri ikut "berjalan" bersama waktu:
+function MyWorkOrder() {
+  const { stage, forecast, fmt } = useTimeMachineContext()
+  return stage === 'warning' && <button>Jadwalkan sebelum {fmt.time(forecast?.t)}</button>
+}
 ```
 
-`analysis.js` tidak bergantung pada React — kalau backend sudah punya model AI sendiri,
-cukup ganti `analyzeSeries` / `forecastAt` dengan hasil dari API (bentuk keluarannya sama).
+Semua `TM*` opsional dan bebas urutan. `TMRoot` hanya wadah berbingkai + keyboard.
+
+### 3 · Headless — induk ikut membaca / mengendalikan state
+
+```jsx
+const tm = useTimeMachine({
+  series, threshold: 7.1, unit: 'mm/s',
+  onDetect: (info) => notify(`Anomali terdeteksi ${info.time}`),   // masuk tahap warning
+  onAlarm:  (info) => openWorkOrder(info.point),                    // masuk tahap alarm
+  onIndexChange: (i, point) => setTwinTime(point.t),                // sinkron ke modul lain
+})
+
+tm.seek(tm.analysis.detectIndex)   // lompat waktu dari tombol mana pun
+tm.player.play()
+
+<TimeMachineProvider value={tm}> …TM* atau UI sendiri… </TimeMachineProvider>
+```
+
+Isi `tm`: `series, analysis, index, point, stage, score, trend, forecast, summary,
+labels, fmt { time, duration, value }, player { play, pause, toggle, step, toEnd, speed,
+setSpeed, playing, isAtEnd }, seek`.
+
+**Mode controlled** — waktu dipegang sistem luar (mis. timeline global dashboard):
+`useTimeMachine({ ..., index: globalIndex, onIndexChange: setGlobalIndex })`.
+
+### 4 · Core — logika murni (juga untuk backend Node / script)
+
+```js
+import { analyzeSeries, forecastAt, summarize } from './features/timemachine/core/index.js'
+
+const a = analyzeSeries(series, { threshold: 7.1 })
+summarize(series, a, forecastAt) // { detectAt, alarmAt, leadTime, forecastError, ... }
+```
+
+## Menyambungkan ke backend & model AI
+
+**Data** — `toSeries` menerima format apa pun; waktu boleh angka, `Date`, atau string ISO:
+
+```js
+const { series, origin, toT } = toSeries(rows, { time: 'timestamp', value: 'vibration_rms', unit: 'day' })
+<TimeMachineReplay series={series} origin={origin} timeUnit="day" … />   // sumbu tampil "8 Okt"
+```
+
+**Model** — bila backend sudah punya model ML, ganti otak bawaan dengan hasilnya:
+
+```js
+const { analyzer, forecaster } = fromPrecomputed({
+  baseline: res.baseline,                       // nilai normal
+  score: res.anomaly_score,                     // 0..1, sejajar dengan series (opsional)
+  trend: res.trend,                             // nilai halus (opsional)
+  detectAt: toT(res.detected_at),               // kapan model mendeteksi
+  forecasts: res.forecasts.map((f) => ({ at: toT(f.made_at), crossAt: toT(f.failure_eta) })),
+})
+<TimeMachineReplay … analyzer={analyzer} forecaster={forecaster} />
+```
+
+Atau tulis analyzer sendiri: fungsi `(series, { threshold }) => Analysis` dengan bentuk
+`{ mean, sd, smooth[], score[], detectIndex, crossIndex, threshold }` (lihat `core/types.js`).
+Simpan adapter format API di **satu fungsi** (contoh: `adapt()` di `src/demo/BackendDemo.jsx`),
+sehingga bila backend berubah cukup satu tempat yang disesuaikan.
+
+## Kustomisasi
+
+| Kebutuhan | Caranya |
+| --- | --- |
+| Bahasa / gaya pitch | `labels={LABELS_EN}` atau sebagian: `labels={{ story: { warning: '…' } }}` — template `{var}`, `**tebal**` |
+| Satuan waktu | `timeUnit="hour"` → "Jam 5" / "5 jam"; atau `formatTime`, `formatDuration` sendiri |
+| Tema | timpa CSS variable: `.dashboard .tm-part { --tm-bg:#fff; --tm-text:#0f172a; --tm-accent:#7c3aed }` (juga `--tm-panel --tm-line --tm-muted --tm-ok --tm-ai --tm-alarm`) |
+| Kepekaan deteksi | `analysisOptions={{ warmup, alpha, detectZ, hold }}` |
+| Proyeksi | `forecastOptions={{ window, steps, maxAhead }}` |
+| Kecepatan / posisi awal | `pointsPerSecond`, `start="end" \| "start" \| index` |
+| Penanda kejadian | `events={[{ t, title, text }]}` |
+
+Tip: memo-kan `series`, `analysisOptions`, `forecastOptions` (atau taruh di luar komponen)
+agar analisis tidak dihitung ulang tiap render. Callback tidak perlu di-memo.
+
+**Gabung dengan project 04 (X-ray):** `onIndexChange` / `stage` → nyalakan
+`<FaultPulse active={tm.stage !== 'normal'}>` sehingga bearing 3D ikut berdenyut saat
+slider melewati titik deteksi AI.
 
 ## Cara kerjanya
 
 - **Waktu = index.** Seluruh tampilan diturunkan dari satu angka `index`. Grafik hanya
-  menggambar titik `0..index`, sumbu x/y tetap untuk seluruh rentang → masa depan tampak
-  kosong (diarsir "belum terjadi") dan axis tidak melompat saat slider digeser.
-- **Pandangan AI** (`analyzeSeries`): baseline (mean, sd) dari 30% data awal; nilai
-  dihaluskan dengan EWMA; skor = posisi tren antara baseline (0) dan batas (1).
-  **Deteksi** = tren > baseline + 1.5·sd selama 4 titik berturut-turut. **Alarm
-  konvensional** = nilai mentah pertama ≥ batas.
-- **Prediksi jujur** (`forecastAt`): hanya memakai data **sampai index** (tidak mengintip
-  masa depan). Regresi linear pada `log(tren − baseline)` di 28 titik terakhir = model
-  pertumbuhan eksponensial, lalu diekstrapolasi sampai menyentuh batas. Karena itu
-  tanggal prediksi bergeser dan makin akurat saat diputar — itulah "cerita"-nya.
-- **Pemutar** (`useReplay`): `requestAnimationFrame` + akumulator pecahan, jadi kecepatan
-  tetap konsisten di layar 60 Hz maupun 120 Hz; berhenti otomatis di ujung.
+  menggambar titik `0..index`, sumbu tetap untuk seluruh rentang → masa depan kosong
+  dan axis tidak melompat saat slider digeser.
+- **Analyzer bawaan**: baseline (mean, sd) dari 30% data awal; nilai dihaluskan EWMA;
+  skor = posisi tren antara baseline (0) dan batas (1). **Deteksi** = tren >
+  baseline + 1.5·sd selama 4 titik berturut-turut. **Alarm konvensional** = nilai mentah ≥ batas.
+- **Prediksi jujur**: hanya memakai data **sampai index** (dibuktikan oleh test
+  "prediksi tidak mengintip masa depan"). Regresi linear pada `log(tren − baseline)` =
+  model eksponensial, diekstrapolasi sampai batas — tanggalnya makin tepat saat diputar.
+- **Pemutar**: `requestAnimationFrame` + akumulator pecahan → kecepatan konsisten di
+  60/120 Hz; berhenti otomatis di ujung; mendukung controlled index.
+- **Callback** `onStageChange / onDetect / onAlarm` hanya dipicu saat tahap berubah
+  (tidak saat mount), membawa `{ stage, prev, index, point, time, forecast, summary }`.
 
-Pada data demo bearing: AI mendeteksi di Hari 37, alarm konvensional di Hari 51
-(**14 hari lebih awal**); prediksi terakhir sebelum alarm meleset ±1,4 hari.
+Data demo bearing: AI mendeteksi Hari 37, alarm Hari 51 (**14 hari lebih awal**);
+prediksi terakhir sebelum alarm meleset ±1,4 hari.
