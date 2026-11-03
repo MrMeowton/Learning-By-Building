@@ -1,104 +1,42 @@
-import { useEffect, useRef, useState } from 'react'
-import Viewer from './components/Viewer'
-import { CAMERA_VIEWS, goToView } from './data/cameraViews'
-import InfoPanel from './components/InfoPanel'
-import { useSimulatedReadings } from './hooks/useSimulatedReadings'
-import { STATUS } from './data/parts'
+import { useState } from 'react'
+import { Asset3DView, AssetPanel, useSimulatedReadings, useSensorHistory } from './features/asset-3d'
+import { pumpSkid } from './data/pumpSkid'
 
 // =========================================
-// <App> — menyatukan state & layout
+// Demo: contoh cara project utama memakai modul asset-3d
 // -----------------------------------------
-// State yang dibagi antara panel (HTML) dan kanvas (3D):
-// - selectedId : komponen yang sedang difokuskan
-// - explode    : 0..1, seberapa jauh komponen dipisah
-// - showLabels : tampilkan label semua komponen
-// - running    : mesin berputar & data sensor mengalir
+// App hanya memegang 3 hal:
+//   1. config aset            → src/data/pumpSkid.js
+//   2. sumber data sensor     → useSimulatedReadings (ganti dengan API)
+//   3. state yang dibagi      → selectedId (panel ↔ 3D), running
+// Semua logika 3D ada di dalam src/features/asset-3d.
 // =========================================
 
 export default function App() {
-  const controlsRef = useRef(null)
   const [selectedId, setSelectedId] = useState(null)
-  const [explode, setExplode] = useState(0)
-  const [showLabels, setShowLabels] = useState(true)
   const [running, setRunning] = useState(true)
 
-  // Data sensor + riwayatnya (untuk grafik mini di panel)
-  const { readings, history } = useSimulatedReadings({ running })
-
-  // Tombol Esc = batal pilih
-  useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && setSelectedId(null)
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  const readings = useSimulatedReadings(pumpSkid.parts, { running })
+  const history = useSensorHistory(readings)
 
   return (
     <div className="layout">
-      <InfoPanel readings={readings} history={history} selectedId={selectedId} onSelect={setSelectedId} />
+      <AssetPanel
+        asset={pumpSkid}
+        readings={readings}
+        history={history}
+        selectedId={selectedId}
+        onSelect={setSelectedId}
+      />
 
-      <main className="stage">
-        <Viewer
-          controlsRef={controlsRef}
-          readings={readings}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-          explode={explode}
-          showLabels={showLabels}
-          running={running}
-        />
-
-        {/* ---------- Toolbar melayang di atas kanvas ---------- */}
-        <div className="toolbar">
-          <div className="toolbar__group">
-            {Object.entries(CAMERA_VIEWS).map(([key, v]) => (
-              <button
-                key={key}
-                className="chip"
-                onClick={() => {
-                  setSelectedId(null)
-                  goToView(controlsRef.current, key)
-                }}
-              >
-                {v.label}
-              </button>
-            ))}
-          </div>
-
-          <label className="toolbar__group slider">
-            <span>Explode</span>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={explode}
-              onChange={(e) => setExplode(+e.target.value)}
-            />
-          </label>
-
-          <div className="toolbar__group">
-            <button className={`chip ${showLabels ? 'chip--on' : ''}`} onClick={() => setShowLabels((v) => !v)}>
-              Label
-            </button>
-            <button className={`chip ${running ? 'chip--on' : ''}`} onClick={() => setRunning((v) => !v)}>
-              {running ? '❚❚ Stop' : '▶ Run'}
-            </button>
-          </div>
-        </div>
-
-        {/* ---------- Legenda & petunjuk ---------- */}
-        <div className="legend">
-          {Object.values(STATUS).map((s) => (
-            <span key={s.label}>
-              <i className="dot" style={{ background: s.color }} />
-              {s.label}
-            </span>
-          ))}
-          <span className="legend__hint">Drag putar · Scroll zoom · Klik kanan geser · Esc batal</span>
-        </div>
-
-        <div className={`live ${running ? 'live--on' : ''}`}>{running ? 'LIVE' : 'PAUSED'}</div>
-      </main>
+      <Asset3DView
+        asset={pumpSkid}
+        readings={readings}
+        selectedId={selectedId}
+        onSelect={setSelectedId}
+        running={running}
+        onRunningChange={setRunning}
+      />
     </div>
   )
 }
