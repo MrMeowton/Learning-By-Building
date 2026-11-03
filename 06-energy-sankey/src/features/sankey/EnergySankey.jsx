@@ -4,6 +4,7 @@ import { useTweenedLinks } from './useTweenedLinks'
 import { KIND_COLORS, KIND_LABELS } from './colors'
 import './sankey.css'
 
+const EMPTY = []
 const PERIOD = 26 // jarak antar garis bergerak (px) — harus sama dengan keyframe sk-flow di CSS
 
 const fmt = (v) =>
@@ -24,8 +25,9 @@ function linkKind(l) {
  * `nodes` & `links` sebaiknya di-memo (useMemo) oleh pemanggil.
  */
 export function EnergySankey({
-  nodes,
-  links,
+  data, // alternatif: { nodes, links } sekaligus (mis. hasil graphFromRows / useEnergyFlows)
+  nodes = data?.nodes ?? EMPTY,
+  links = data?.links ?? EMPTY,
   unit = 'GJ/jam',
   maxValue = null,
   width = 1000,
@@ -35,7 +37,11 @@ export function EnergySankey({
   colors = KIND_COLORS,
   kindLabels = KIND_LABELS,
   title = 'Neraca energi',
-  onSelect,
+  legend = true,
+  className = '',
+  renderTooltip, // (target, ctx) => ReactNode — ganti isi tooltip; return undefined = bawaan
+  onSelect, // (node | null) saat node dikunci/dilepas
+  onHover, // ({ type, node | link } | null) — sinkronkan panel lain (3D, tabel, dll.)
 }) {
   const tweened = useTweenedLinks(links)
   const layout = useMemo(
@@ -53,6 +59,10 @@ export function EnergySankey({
   const active = hover ?? (pinned ? { type: 'node', id: pinned } : null)
   const nodeById = useMemo(() => new Map(layout.nodes.map((n) => [n.id, n])), [layout])
   const linkById = useMemo(() => new Map(layout.links.map((l) => [l.id, l])), [layout])
+  const setHoverAndNotify = (h) => {
+    setHover(h)
+    onHover?.(h && (h.type === 'node' ? { type: 'node', node: nodeById.get(h.id) } : { type: 'link', link: linkById.get(h.id) }))
+  }
 
   const isLit = (l) => {
     if (!active) return true
@@ -88,9 +98,10 @@ export function EnergySankey({
   return (
     <div
       ref={rootRef}
-      className={`sk-root${animate ? '' : ' is-paused'}`}
+      className={`sk-root${animate ? '' : ' is-paused'} ${className}`.trim()}
       onKeyDown={(e) => e.key === 'Escape' && (setPinned(null), setHover(null), onSelect?.(null))}
     >
+      {legend && (
       <ul className="sk-legend" aria-label="Jenis energi">
         {Object.entries(kindLabels).map(([k, label]) => (
           <li key={k}>
@@ -100,6 +111,7 @@ export function EnergySankey({
         ))}
         <li className="sk-legend-note">lebar aliran = besaran ({unit})</li>
       </ul>
+      )}
 
       <div className="sk-scroll">
         <svg
@@ -109,7 +121,7 @@ export function EnergySankey({
           role="img"
           aria-label={`${title}: total masukan ${fmt(totalIn)} ${unit}`}
           onMouseMove={placeTip}
-          onMouseLeave={() => setHover(null)}
+          onMouseLeave={() => setHoverAndNotify(null)}
           onClick={(e) => e.target === e.currentTarget && pinned && togglePin(pinned)}
         >
           <g className="sk-links">
@@ -123,8 +135,8 @@ export function EnergySankey({
                 <g
                   key={l.id}
                   className={`sk-link${lit ? '' : ' is-dim'}${active && lit ? ' is-lit' : ''}`}
-                  onMouseEnter={() => setHover({ type: 'link', id: l.id })}
-                  onMouseLeave={() => setHover(null)}
+                  onMouseEnter={() => setHoverAndNotify({ type: 'link', id: l.id })}
+                  onMouseLeave={() => setHoverAndNotify(null)}
                 >
                   <path
                     className="sk-ribbon"
@@ -165,10 +177,10 @@ export function EnergySankey({
                   role="button"
                   aria-pressed={pinned === n.id}
                   aria-label={`${n.label}: ${fmt(n.value)} ${unit}`}
-                  onMouseEnter={() => setHover({ type: 'node', id: n.id })}
-                  onMouseLeave={() => setHover(null)}
-                  onFocus={() => (setHover({ type: 'node', id: n.id }), tipAtNode(n))}
-                  onBlur={() => setHover(null)}
+                  onMouseEnter={() => setHoverAndNotify({ type: 'node', id: n.id })}
+                  onMouseLeave={() => setHoverAndNotify(null)}
+                  onFocus={() => (setHoverAndNotify({ type: 'node', id: n.id }), tipAtNode(n))}
+                  onBlur={() => setHoverAndNotify(null)}
                   onClick={() => togglePin(n.id)}
                   onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), togglePin(n.id))}
                 >
@@ -208,13 +220,14 @@ export function EnergySankey({
           linkById={linkById}
           totalIn={totalIn}
           unit={unit}
+          render={renderTooltip}
         />
       )}
     </div>
   )
 }
 
-function Tooltip({ active, tip, nodeById, linkById, totalIn, unit }) {
+function Tooltip({ active, tip, nodeById, linkById, totalIn, unit, render }) {
   let head
   let rows = []
   if (active.type === 'link') {
@@ -244,6 +257,9 @@ function Tooltip({ active, tip, nodeById, linkById, totalIn, unit }) {
       rows.push([`${n.out.length ? '→' : '←'} ${other}`, `${fmt(l.value)}`])
     }
   }
+  const target =
+    active.type === 'node' ? { type: 'node', node: nodeById.get(active.id) } : { type: 'link', link: linkById.get(active.id) }
+  const custom = render?.(target, { unit, totalIn, fmt, pct })
   const flip = tip.x > tip.w - 260
   return (
     <div
@@ -251,6 +267,8 @@ function Tooltip({ active, tip, nodeById, linkById, totalIn, unit }) {
       style={{ left: tip.x, top: tip.y, transform: `translate(${flip ? 'calc(-100% - 14px)' : '14px'}, -50%)` }}
       role="status"
     >
+      {custom !== undefined ? custom : (
+      <>
       <strong>{head}</strong>
       <dl>
         {rows.map(([k, v]) => (
@@ -260,6 +278,8 @@ function Tooltip({ active, tip, nodeById, linkById, totalIn, unit }) {
           </div>
         ))}
       </dl>
+      </>
+      )}
     </div>
   )
 }

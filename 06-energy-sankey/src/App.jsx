@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react'
 import { EnergySankey, energyBalance } from './features/sankey'
 import { LEVERS, NODES, PRESETS, plantLinks, worstCaseInput } from './demo/plantModel'
+import LiveDemo from './demo/LiveDemo'
 
 const HOURS_PER_YEAR = 8000
 const MAX_VALUE = worstCaseInput() * 1.02 // skala lebar dikunci → penghematan terlihat menyusut
@@ -14,6 +15,7 @@ export default function App() {
     const { label: _, ...p } = PRESETS.actual
     return p
   })
+  const [mode, setMode] = useState('sim') // sim | live
   const [animate, setAnimate] = useState(true)
   const [speed, setSpeed] = useState(1)
 
@@ -29,8 +31,17 @@ export default function App() {
     Object.keys(LEVERS).every((k) => Math.abs(p[k] - levers[k]) < 1e-9),
   )?.[0]
 
+  if (mode === 'live')
+    return (
+      <main className="page">
+        <ModeTabs mode={mode} setMode={setMode} />
+        <LiveDemo maxValue={MAX_VALUE} />
+      </main>
+    )
+
   return (
     <main className="page">
+      <ModeTabs mode={mode} setMode={setMode} />
       <header className="head">
         <div>
           <p className="eyebrow">Energy · Neraca energi pabrik</p>
@@ -94,6 +105,15 @@ export default function App() {
         Arahkan kursor ke aliran / node untuk detail · klik node untuk mengunci sorotan (Esc untuk lepas) · angka ilustratif
       </p>
     </main>
+  )
+}
+
+function ModeTabs({ mode, setMode }) {
+  return (
+    <nav className="tabs">
+      <button className={mode === 'sim' ? 'is-on' : ''} onClick={() => setMode('sim')}>Simulator skenario</button>
+      <button className={mode === 'live' ? 'is-on' : ''} onClick={() => setMode('live')}>Live (mock API)</button>
+    </nav>
   )
 }
 

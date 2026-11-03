@@ -35,16 +35,27 @@ Data demo (angka ilustratif): 1.060 GJ/jam masuk, efisiensi 57,2%. Dengan optima
 
 ```
 src/
-├── App.jsx                   DEMO: KPI, preset skenario, slider tuas efisiensi
+├── App.jsx                   DEMO: tab "Simulator skenario" & "Live (mock API)"
 ├── demo/plantModel.js        DEMO: model neraca energi pabrik (selalu seimbang)
+├── demo/mockApi.js           DEMO: pura-pura API meter (tabel baris + derau)
+├── demo/LiveDemo.jsx         DEMO: jalur integrasi API → adapter → validasi → Sankey
 └── features/sankey/          ← MODUL MANDIRI — salin folder ini
     ├── index.js              pintu masuk (impor HANYA dari sini)
-    ├── EnergySankey.jsx      siap pakai: legenda + diagram + tooltip + sorotan
-    ├── layout.js             logika murni: kolom, posisi node/aliran, path, neraca
-    ├── useTweenedLinks.js    hook animasi perubahan nilai (requestAnimationFrame)
+    │   — lapisan UI —
+    ├── EnergySankey.jsx      komponen siap pakai (legenda, diagram, tooltip, sorotan)
     ├── colors.js             warna & label per jenis energi
-    └── sankey.css            gaya ber-prefix sk-
+    ├── sankey.css            gaya ber-prefix sk- (tema via CSS variable)
+    │   — lapisan data —
+    ├── adapters.js           tabel baris API/CSV → { nodes, links }, konversi satuan
+    ├── validate.js           cek neraca per node, id tak dikenal, nilai negatif
+    ├── useEnergyFlows.js     hook ambil data + polling + validasi otomatis
+    │   — inti (tanpa React) —
+    ├── layout.js             kolom, posisi node/aliran, path, neraca total
+    └── useTweenedLinks.js    animasi perubahan nilai
 ```
+
+Tiap lapisan bisa dipakai terpisah: hanya UI (data sudah rapi), hanya data (gambar
+dengan library lain), atau hanya `layout.js` (render sendiri / di backend).
 
 ## Integrasi ke project utama
 
@@ -52,6 +63,35 @@ src/
 cp -r 06-energy-sankey/src/features/sankey  <project-utama>/src/features/
 # tidak ada dependensi tambahan selain react
 ```
+
+### Resep hackathon (3 baris)
+
+Backend cukup kirim tabel aliran; node dibuat otomatis, jenisnya ditebak dari nama:
+
+```jsx
+import { EnergySankey, graphFromRows, useEnergyFlows } from './features/sankey'
+
+const fetchGraph = async () => graphFromRows(await fetch('/api/energy/flows').then((r) => r.json()))
+const { data, issues } = useEnergyFlows(fetchGraph, { intervalMs: 5000 })   // di dalam komponen
+{data && <EnergySankey data={data} onSelect={(n) => bukaDetailUnit(n?.id)} />}
+```
+
+| Lapisan data | Keterangan |
+| --- | --- |
+| `graphFromRows(rows, { keys, kinds, labels })` | `rows`: `[{ from, to, value }]`. `keys` memetakan nama kolom (mis. `{ value: 'value_gj_h' }`), `kinds`/`labels` menimpa tebakan per id. Baris from→to yang sama dijumlahkan |
+| `guessKind(nama)` | `fuel` / `steam` / `power` / `product` / `loss` dari kata kunci (fuel, uap, PLN, produk, buang, vent, …), selain itu `unit` |
+| `scaleGraph(graph, faktor)` + `UNIT_TO_GJ_PER_H` | konversi satuan, mis. data dalam MW → `scaleGraph(g, 3.6)` |
+| `validateGraph(graph, { tolerance })` | `{ ok, issues[] }` — `imbalance` per node (default > 2%), `unknown-node`, `negative`. Tampilkan sebagai peringatan kualitas data |
+| `useEnergyFlows(fetcher, { intervalMs, validate })` | `{ data, issues, loading, error, updatedAt }`; identitas `data` stabil → animasi hanya saat data baru |
+
+| Titik kustomisasi UI | Keterangan |
+| --- | --- |
+| `data` | `{ nodes, links }` sekaligus (alternatif prop `nodes` + `links`) |
+| `onHover({ type, node \| link } \| null)` | sinkronkan komponen lain — mis. sorot unit di digital twin 3D (project 02/04) |
+| `onSelect(node \| null)` | node dikunci/dilepas → buka panel detail, filter tabel, dll. |
+| `renderTooltip(target, { unit, totalIn, fmt, pct })` | ganti isi tooltip; kembalikan `undefined` untuk tooltip bawaan |
+| `legend`, `className` | sembunyikan legenda / tambah class pembungkus |
+| CSS variable `--sk-bg --sk-line --sk-text --sk-muted` | samakan tema: `.sk-root { --sk-bg: #fff; … }` |
 
 ### Cara 1 — pakai komponen jadi
 
