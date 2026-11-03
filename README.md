@@ -4,3 +4,4 @@ Repository untuk project-project dalam mempelajari software development. Reposit
 # Daftar project
 1. Personal Task Manager
 2. Asset 3D View — `react-three-fiber` + `drei` (`02-3d-asset-viewer`)
+3. Root Cause Graph — `@xyflow/react` (React Flow) (`03-root-cause-graph`)
