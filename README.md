@@ -8,3 +8,4 @@ Repository untuk project-project dalam mempelajari software development. Reposit
 4. X-Ray Asset View — klik kompresor, casing transparan, bearing rusak berdenyut merah (`04-xray-asset-view`)
 5. Time-Machine Replay — geser waktu ke belakang, anomali tumbuh pelan-pelan, AI terbukti memprediksi lebih awal; modul berlapis (preset · komposabel · headless · core) + adapter API (`05-time-machine-replay`)
 6. Energy Sankey — aliran fuel gas, steam, listrik → unit → produk & kerugian beranimasi, lebar aliran = GJ (`06-energy-sankey`)
+7. Plant Heatmap Overlay — unit di layout pabrik diwarnai menurut intensitas energi, emisi, atau risiko; toggle antar layer (`07-plant-heatmap`)
