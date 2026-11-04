@@ -29,3 +29,6 @@ Setiap project = satu modul mandiri di `src/features/<modul>` (hanya `react`, lo
 16. Energy & Carbon P&L per Unit — SEC × harga energi → US$/t, tCO₂e/t, biaya karbon, bocor vs benchmark (`16-energy-carbon-pnl`)
 17. MACC — kurva biaya abatement per tCO₂e, harga karbon, anggaran capex & target (`17-macc`)
 18. Production Forecast → Margin View — forecast Holt + P10/P90 × spread produk → margin at risk vs rencana (`18-production-margin`)
+
+## CALIBER 2026 Final — Spare Part Intelligence
+19. Spare-Part 3D Catalog — 60 model spare part + 17 equipment (furnace, kompresor, turbin, pompa, control valve…) dari data kasus final; tiap folder berisi `PROMPT.md` untuk AI lain + placeholder; viewer dengan X-Ray, explode & simulasi fault (`19-spare-part-3d-catalog`)
