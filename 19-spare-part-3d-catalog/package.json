@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "generate": "python3 scripts/gen_3d_catalog.py \"../data/Supporting Data\"",
+    "generate": "node scripts/generate.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
