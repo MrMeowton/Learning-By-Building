@@ -11,7 +11,7 @@ Template for 3D models of **all spare parts and equipment in the CALIBER 2026 fi
 npm install
 npm run dev        # viewer: pick part/equipment, X-Ray, explode, simulate fault; ● = generated, ○ = placeholder
 npm run typecheck  # checks pasted models against src/features/spare-3d/contract.ts
-npm run generate   # re-generate catalog/prompts from the case Excel (needs "../data/Supporting Data"; never overwrites real models)
+npm run generate -- "C:\path\to\Supporting Data"   # re-generate catalog/prompts (Python 3 + pandas + openpyxl; never overwrites real models)
 ```
 
 Module docs & workflow: `src/features/spare-3d/README.md`. To use in the hackathon app: copy `src/features/spare-3d` (+ `src/data`) into the project and install `three @react-three/fiber @react-three/drei`.
