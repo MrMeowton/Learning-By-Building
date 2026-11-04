@@ -9,7 +9,10 @@ Re-run safely: index.tsx is only written if it is still the placeholder (never o
 """
 import json, re, sys
 from pathlib import Path
-import pandas as pd
+try:
+    import pandas as pd  # also needs openpyxl to read .xlsx
+except ImportError:
+    sys.exit("Missing Python packages. Run: pip install pandas openpyxl")
 
 DATA = Path(sys.argv[1] if len(sys.argv) > 1 else "Supporting Data")
 ROOT = Path(__file__).resolve().parent.parent
