@@ -4,5 +4,5 @@ import type { PartProps, PartMeta } from "../../contract";
 
 export const META: PartMeta = { id: "anchor", name: "Anchor", size: [1, 1, 1] };
 export default function Anchor(props: PartProps) {
-  return <Placeholder {...props} label="anchor" />;
+  return <Placeholder {...props} label="anchor" xray />; // wireframe = not generated yet
 }

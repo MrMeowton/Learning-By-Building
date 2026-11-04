@@ -4,5 +4,5 @@ import type { PartProps, PartMeta } from "../../contract";
 
 export const META: PartMeta = { id: "o-ring", name: "O ring", size: [1, 1, 1] };
 export default function ORing(props: PartProps) {
-  return <Placeholder {...props} label="o-ring" />;
+  return <Placeholder {...props} label="o-ring" xray />; // wireframe = not generated yet
 }

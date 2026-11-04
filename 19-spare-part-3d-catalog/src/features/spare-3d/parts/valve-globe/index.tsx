@@ -4,5 +4,5 @@ import type { PartProps, PartMeta } from "../../contract";
 
 export const META: PartMeta = { id: "valve-globe", name: "Valve globe", size: [1, 1, 1] };
 export default function ValveGlobe(props: PartProps) {
-  return <Placeholder {...props} label="valve-globe" />;
+  return <Placeholder {...props} label="valve-globe" xray />; // wireframe = not generated yet
 }

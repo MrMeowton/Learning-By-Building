@@ -4,5 +4,5 @@ import type { PartProps, PartMeta } from "../../contract";
 
 export const META: PartMeta = { id: "antirust", name: "Antirust", size: [1, 1, 1] };
 export default function Antirust(props: PartProps) {
-  return <Placeholder {...props} label="antirust" />;
+  return <Placeholder {...props} label="antirust" xray />; // wireframe = not generated yet
 }

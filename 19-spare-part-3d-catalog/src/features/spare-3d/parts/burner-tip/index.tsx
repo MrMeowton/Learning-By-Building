@@ -4,5 +4,5 @@ import type { PartProps, PartMeta } from "../../contract";
 
 export const META: PartMeta = { id: "burner-tip", name: "Burner tip", size: [1, 1, 1] };
 export default function BurnerTip(props: PartProps) {
-  return <Placeholder {...props} label="burner-tip" />;
+  return <Placeholder {...props} label="burner-tip" xray />; // wireframe = not generated yet
 }

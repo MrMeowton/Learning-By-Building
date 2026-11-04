@@ -4,5 +4,5 @@ import type { PartProps, PartMeta } from "../../contract";
 
 export const META: PartMeta = { id: "nozzle", name: "Nozzle", size: [1, 1, 1] };
 export default function Nozzle(props: PartProps) {
-  return <Placeholder {...props} label="nozzle" />;
+  return <Placeholder {...props} label="nozzle" xray />; // wireframe = not generated yet
 }

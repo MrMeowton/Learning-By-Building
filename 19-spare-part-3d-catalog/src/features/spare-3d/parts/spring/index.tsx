@@ -4,5 +4,5 @@ import type { PartProps, PartMeta } from "../../contract";
 
 export const META: PartMeta = { id: "spring", name: "Spring", size: [1, 1, 1] };
 export default function Spring(props: PartProps) {
-  return <Placeholder {...props} label="spring" />;
+  return <Placeholder {...props} label="spring" xray />; // wireframe = not generated yet
 }

@@ -41,6 +41,9 @@ export default function App() {
         <div className="bar">
           <strong>{sel.id}</strong>
           {eq && <>
+            <span title="Wireframe boxes = parts not generated yet">
+              parts {new Set(eq.slots.map((s) => s.part).filter((p) => done("parts", p))).size}/{new Set(eq.slots.map((s) => s.part)).size} generated
+            </span>
             <button onClick={() => setXray(!xray)}>{xray ? "Close X-Ray" : "X-Ray"}</button>
             <label>Explode <input type="range" min={0} max={1} step={0.05} value={explode} onChange={(e) => setExplode(+e.target.value)} /></label>
             <select value={faultSlot} onChange={(e) => setFaultSlot(e.target.value)}>
