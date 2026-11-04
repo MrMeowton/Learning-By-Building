@@ -10,7 +10,7 @@ Repository untuk project-project dalam mempelajari software development. Reposit
 6. Energy Sankey — aliran fuel gas, steam, listrik → unit → produk & kerugian beranimasi, lebar aliran = GJ (`06-energy-sankey`)
 7. Plant Heatmap Overlay — unit di layout pabrik diwarnai menurut intensitas energi, emisi, atau risiko; toggle antar layer (`07-plant-heatmap`)
 8. Live P&ID — diagram proses dengan pipa beranimasi (laju ∝ flow), level & valve hidup, gelembung instrumen ISA dengan tag sensor live + panel kartu alarm/sparkline (`08-live-pid`)
-9. Spare-Part Race Timeline — dua garis waktu per aset: perkiraan gagal vs part tiba (lead time); merah bila part terlambat, plus what-if expedite (`09-spare-part-race`)
+9. Spare-Partcd Race Timeline — dua garis waktu per aset: perkiraan gagal vs part tiba (lead time); merah bila part terlambat, plus what-if expedite (`09-spare-part-race`)
 
 ## Fitur bisnis per pilar (10–18)
 Setiap project = satu modul mandiri di `src/features/<modul>` (hanya `react`, logika murni + tes `node --test`), siap disalin ke project hackathon.
